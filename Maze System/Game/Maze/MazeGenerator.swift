@@ -107,8 +107,8 @@ extension Maze {
     /// Kruskal 算法生成迷宫
     func kruskalGenerate(states: inout [[StateType]]) {
         var wall_list: [(Int, Int)] = []
-        for i in 1...self.width {
-            for j in 1...self.height {
+        for i in 1...self.height {
+            for j in 1...self.width {
                 if states[i][j] == .wall { wall_list.append((i, j)) }
             }
         }

@@ -10,44 +10,56 @@ import SwiftUI
 struct TaskAlertView: View {
     let question: String
     @Binding var answer: String
-    var onSubmit: () -> Void
+    var onSubmit: (Bool) -> Void
 
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
         VStack(spacing: 20) {
-            Text(NSLocalizedString("Task", comment: ""))
-                .font(.headline)
+            Text("Task")
+                .font(.largeTitle)
+                .fontWeight(.bold)
                 .padding(.top)
 
             Text(question)
+                .font(.title2)
+                .multilineTextAlignment(.center)
                 .padding()
 
-            TextField(NSLocalizedString("Your Answer", comment: ""), text: $answer)
+            TextField("Your Answer", text: $answer)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
-                .padding()
+                .padding(.horizontal)
 
             HStack {
-                Button(action: {
-                    presentationMode.wrappedValue.dismiss()
-                }) {
-                    Text(NSLocalizedString("Cancel", comment: ""))
-                }
-                .padding()
-
                 Spacer()
-
                 Button(action: {
                     presentationMode.wrappedValue.dismiss()
-                    onSubmit()
+                    onSubmit(false)  // Treat Cancel as failure
                 }) {
-                    Text(NSLocalizedString("Submit", comment: ""))
+                    Text("Cancel")
+                        .font(.headline)
+                        .foregroundColor(.red)
                 }
                 .padding()
+
+                Button(action: {
+                    let success = !answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    presentationMode.wrappedValue.dismiss()
+                    onSubmit(success)
+                }) {
+                    Text("Submit")
+                        .font(.headline)
+                }
+                .padding()
+                Spacer()
             }
-            .padding(.horizontal)
         }
         .padding()
-        .frame(maxWidth: 400)
+        #if os(iOS)
+        .background(Color(UIColor.systemBackground))
+        #endif
+        .cornerRadius(20)
+        .shadow(radius: 10)
+        .padding()
     }
 }

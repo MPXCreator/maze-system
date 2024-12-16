@@ -55,7 +55,7 @@ struct MazePreview: View {
     func colorForNodeType(_ nodeType: NodeType) -> Color {
         switch nodeType {
         case .wall: return .black
-        case .path, .task, .portal: return .white
+        case .path, .task, .portal, .endPoint: return .white
         }
     }
     

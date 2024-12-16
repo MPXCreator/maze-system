@@ -13,24 +13,21 @@ struct ContentView: View {
         TabView {
             GameStartView()
                 .tabItem {
-                    Label("迷宫", systemImage: "square.grid.2x2")
+                    Label(LocalizedStringKey("Maze"), systemImage: "square.grid.2x2")
                 }
-                .modelContainer(for: GameState.self)
             
             NavigationStack {
                 DesignerStartView()
             }
                 .tabItem {
-                    Label("设计器", systemImage: "pencil.and.outline")
+                    Label(LocalizedStringKey("Designer"), systemImage: "pencil.and.outline")
                 }
-                .modelContainer(for: Draft.self)
             
             SettingView()
                 .tabItem {
-                    Label("设置", systemImage: "gearshape")
+                    Label(LocalizedStringKey("Settings"), systemImage: "gearshape")
                 }
         }
-        //.tabViewStyle(.sidebarAdaptable)
     }
 }
 

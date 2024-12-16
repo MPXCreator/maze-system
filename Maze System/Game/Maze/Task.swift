@@ -64,7 +64,7 @@ class Task {
     func generateQuestion() {
         // 根据分数确定难度级别
         determineDifficulty()
-
+        
         // 随机选择任务类型
         selectTaskType()
 

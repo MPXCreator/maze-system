@@ -14,100 +14,99 @@ import SwiftData
 class GameController: ObservableObject {
     @Published var gameState: GameState
     @Published var isMoving: Bool = false
-    @Published var movementSpeed: Double = 0.5  // 移动速度，范围 0.1 - 1.0
+    @Published var movementSpeed: Double = 0.5  // 移动速度
     @Published var autoPathfindingEnabled: Bool = false  // 自动寻路开关
-    @Published var showTaskAlert: Bool = false
+    @AppStorage("pathfindingMethod") private var pathfindingMethod: PathMethod = .astar
+    @AppStorage("autoReturnToMain") private var autoReturnToMain: Bool = true
+
+    // 当游戏完成（到达终点）时设置为true，用于GameView观察并返回主页面
+    @Published var gameFinished: Bool = false
+
+    // Alerts
+    @Published var showTaskSheet: Bool = false
     @Published var taskQuestion: String = ""
     @Published var taskAnswer: String = ""
-    @Published var showPortalAlert: Bool = false
     @Published var portalDescription: String = ""
-    var taskCompletionHandler: (() -> Void)?    // 任务完成后的回调
+    @Published var insufficientScoreAlertMessage: String = ""
+    @Published var endAlertMessage: String = ""
+
+    @Published var activeAlert: ActiveAlert?
+
+    var taskCompletionHandler: ((Bool) -> Void)? // 任务完成后的回调
+
     var portalToEnter: Portal?
     var previousPosition: Position?
     var lastValidPosition: Position?
-    var pendingPath: [Position]?  // 保存剩余的路径
+    var pendingPath: [Position]?
     var cancellables = Set<AnyCancellable>()
 
-    // 计算动画持续时间
+    // 管理移动取消的属性
+    var movementWorkItem: DispatchWorkItem?
+
+    // 动画持续时间
     var animationDuration: Double {
-        return 1.1 - movementSpeed  // movementSpeed 为 1.0 时，duration 为 0.1
+        return 1.1 - movementSpeed
     }
 
-    // 默认初始化方法，用于新游戏
-    init() {
-        // 创建默认的迷宫和玩家
-        let maze = Maze(id: "DefaultMaze")
-        let startPosition = Position(mazeID: maze.id, x: 1, y: 1)
-        let player = Player(position: startPosition)
-        player.emoji = "🧑‍💻"
-        player.score = 0
-        let gameState = GameState(currentMaze: maze, mazes: [maze], player: player)
-        self.gameState = gameState
-
-        setupBindings()
-    }
-
-    // 从 GameState 初始化
     init(gameState: GameState) {
         self.gameState = gameState
-        setupBindings()
     }
 
-    // 初始化公共部分
-    private func setupBindings() {
-        // 监听玩家位置变化，检测是否触发任务或传送门
-        self.gameState.player.objectWillChange
-            .sink { [weak self] in
-                if let newPosition = self?.gameState.player.position {
-                    self?.checkForTaskOrPortal(at: newPosition)
-                }
-            }
-            .store(in: &cancellables)
-    }
-
-    // 获取当前迷宫
     var currentMaze: Maze {
         return gameState.currentMaze
     }
 
-    // 获取玩家
     var player: Player {
         return gameState.player
     }
 
-    // 获取 mazesDict
     var mazesDict: [String: Maze] {
         return gameState.mazesDict
     }
 
-    // 判断位置是否相邻
+    var currentMazePlayerScore: Int {
+        return gameState.mazeScores[currentMaze.id] ?? 0
+    }
+
     func isAdjacent(to position: Position) -> Bool {
         let dx = abs(player.position.x - position.x)
         let dy = abs(player.position.y - position.y)
         return (dx == 1 && dy == 0) || (dx == 0 && dy == 1)
     }
+    
+    func moveBy(dx: Int, dy: Int) {
+        let newX = player.position.x + dx
+        let newY = player.position.y + dy
+        let newPos = Position(mazeID: currentMaze.id, x: newX, y: newY)
+        movePlayer(to: newPos)
+    }
 
-    // 移动玩家到指定位置
     func movePlayer(to position: Position) {
+        // 当关闭自动寻路时清除可能存在的pendingPath
+        if !autoPathfindingEnabled {
+            self.pendingPath = nil
+        }
+
         guard !isMoving else { return }
         let maze = currentMaze
         guard position.x >= 0 && position.x < maze.height + 2 && position.y >= 0 && position.y < maze.width + 2 else { return }
         let nodeType = maze[position.x, position.y]
-        if nodeType == .wall {
-            // 墙壁，不能移动
+
+        if nodeType == .wall { return }
+
+        if position == player.position {
+            checkForTaskOrPortalOrEnd(at: position)
             return
         }
 
         if autoPathfindingEnabled {
-            // 自动寻路
-            if let path = maze.findPath(method: .astar, from: player.position, to: position) {
+            if let path = maze.findPath(method: pathfindingMethod, from: player.position, to: position), path.count > 0 {
                 isMoving = true
                 moveAlongPath(path)
             } else {
-                print(NSLocalizedString("No path found", comment: ""))
+                self.activeAlert = .pathNotFound
             }
         } else {
-            // 手动移动，只能移动到相邻的可通行位置
             if isAdjacent(to: position) && nodeType != .wall {
                 isMoving = true
                 movePlayerToPosition(position)
@@ -121,50 +120,23 @@ class GameController: ObservableObject {
             return
         }
 
-        var mutablePath = path
-        // 移除第一个位置（当前玩家所在位置）
-        mutablePath.removeFirst()
-
-        moveNextPosition(in: mutablePath)
+        self.pendingPath = Array(path.dropFirst())
+        moveNextPosition(in: self.pendingPath!)
     }
 
     func moveNextPosition(in path: [Position]) {
-        var path = path
         guard let nextPosition = path.first else {
             isMoving = false
             return
         }
-        path.removeFirst()
 
-        // 保存剩余路径
-        self.pendingPath = path
-        // 记录上一个位置
-        self.previousPosition = player.position
+        var remainingPath = path
+        remainingPath.removeFirst()
 
-        // 计算动画持续时间
-        let duration = animationDuration
-
-        // 计算当前位置与下一位置之间的方向变化
-        let dx = nextPosition.x - player.position.x
-        let dy = nextPosition.y - player.position.y
-        let isTurning = (dx != 0 && dy != 0)  // 如果同时改变 x 和 y，认为是转向
-
-        // 选择不同的动画曲线
-        let animation = isTurning ? Animation.easeInOut(duration: duration) : Animation.linear(duration: duration)
-
-        withAnimation(animation) {
-            self.player.position = nextPosition
-        }
-
-        // 等待动画结束后，继续移动或处理任务
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            // 检查是否有任务或传送门
-            self.checkForTaskOrPortal(at: nextPosition)
-
-            // 如果没有任务或移动未被暂停，继续移动
+        movePlayerToPosition(nextPosition) {
             if self.isMoving {
-                if !path.isEmpty {
-                    self.moveNextPosition(in: path)
+                if !remainingPath.isEmpty {
+                    self.moveNextPosition(in: remainingPath)
                 } else {
                     self.isMoving = false
                 }
@@ -172,72 +144,174 @@ class GameController: ObservableObject {
         }
     }
 
-    func movePlayerToPosition(_ position: Position) {
+    func movePlayerToPosition(_ position: Position, completion: @escaping () -> Void = {}) {
+        self.previousPosition = player.position
+        self.lastValidPosition = player.position
+
         let duration = animationDuration
 
-        withAnimation(Animation.easeInOut(duration: duration)) {
+        withAnimation(.linear(duration: duration)) {
             self.player.position = position
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            self.isMoving = false
+        self.movementWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self else { return }
+
+            self.checkForTaskOrPortalOrEnd(at: position)
+            self.adjustPendingPath()
+
+            if self.pendingPath == nil || self.pendingPath?.isEmpty == true {
+                if self.activeAlert == nil && !self.showTaskSheet {
+                    self.isMoving = false
+                }
+            }
+            completion()
+        }
+        self.movementWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration, execute: workItem)
+    }
+
+    private func adjustPendingPath() {
+        guard let pendingPath = pendingPath else { return }
+        if let index = pendingPath.firstIndex(of: player.position) {
+            if index + 1 < pendingPath.count {
+                self.pendingPath = Array(pendingPath[(index + 1)...])
+            } else {
+                self.pendingPath = []
+            }
+        } else {
+            self.pendingPath = pendingPath.filter { $0 != player.position }
         }
     }
 
-    func checkForTaskOrPortal(at position: Position) {
-        // 检查是否有任务
-        if let task = currentMaze.tasks.first(where: { $0.position.x == position.x && $0.position.y == position.y }) {
-            // 保存当前位置，便于任务失败时回退
-            self.lastValidPosition = previousPosition ?? player.position
+    func checkForTaskOrPortalOrEnd(at position: Position) {
+        let maze = currentMaze
 
-            // 生成任务问题
+        // 终点检测
+        if maze[position.x, position.y] == .endPoint {
+            self.isMoving = false
+            self.movementWorkItem?.cancel()
+            self.endAlertMessage = "Congratulations on reaching the finish! \nYour score is \(self.player.score) points."
+            self.activeAlert = .endReached
+            return
+        }
+
+        // 任务检测
+        if let task = maze.tasks.first(where: { $0.position == position }) {
             task.generateQuestion()
             self.taskQuestion = task.question
             self.taskAnswer = ""
-            self.showTaskAlert = true
-            self.taskCompletionHandler = {
-                if self.taskAnswer == task.answer {
+            self.taskCompletionHandler = { [weak self] success in
+                guard let self = self else { return }
+                if success {
                     self.player.score += task.score
-                    // 提示回答正确
-                    self.taskQuestion = String(format: NSLocalizedString("Correct answer! You earned %d points. Current score: %d", comment: ""), task.score, self.player.score)
-                    // 继续移动
+                    self.gameState.mazeScores[self.currentMaze.id, default: 0] += task.score
+                    if let index = self.currentMaze.tasks.firstIndex(where: { $0.position == position }) {
+                        self.currentMaze.tasks.remove(at: index)
+                    }
                     if let path = self.pendingPath, !path.isEmpty {
+                        self.isMoving = true
                         self.moveNextPosition(in: path)
                     } else {
                         self.isMoving = false
                     }
                 } else {
-                    // 提示回答错误
-                    self.taskQuestion = String(format: NSLocalizedString("Incorrect answer. The correct answer is: %@", comment: ""), task.answer)
-                    // 停止移动，回退到上一个位置
                     self.player.position = self.lastValidPosition ?? self.player.position
+                    self.pendingPath = nil
                     self.isMoving = false
-                }
-                // 显示结果后，自动关闭提示
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self.showTaskAlert = false
+                    self.movementWorkItem?.cancel()
                 }
             }
+            self.isMoving = false
+            self.movementWorkItem?.cancel()
+            self.showTaskSheet = true
+            return
         }
 
-        // 检查是否有传送门
-        if let portal = currentMaze.portals.first(where: { $0.from.x == position.x && $0.from.y == position.y }) {
+        // 传送门检测
+        if let portal = maze.portals.first(where: { $0.from == position }) {
+            if currentMaze.type == .task {
+                let requiredScore = currentMaze.score
+                let currentScore = gameState.mazeScores[currentMaze.id, default: 0]
+                if currentScore < requiredScore {
+                    self.portalToEnter = nil
+                    self.insufficientScoreAlertMessage = "You need \(requiredScore) points to leave this maze. \nYou currently have \(currentScore) points."
+                    self.activeAlert = .insufficientScore
+                    self.isMoving = false
+                    self.movementWorkItem?.cancel()
+                    return
+                }
+            }
+
             self.portalToEnter = portal
-            self.portalDescription = String(format: NSLocalizedString("Do you want to enter maze %@?", comment: ""), portal.to.mazeID)
-            self.showPortalAlert = true
+            self.portalDescription = String(format: "Do you want to enter the maze %@?", portal.to.mazeID)
+            self.isMoving = false
+            self.movementWorkItem?.cancel()
+            self.activeAlert = .portal
+            return
         }
     }
 
     func enterPortal() {
         guard let portal = portalToEnter else { return }
+
         if let nextMaze = mazesDict[portal.to.mazeID] {
-            self.gameState.currentMaze = nextMaze
-            self.player.position = Position(mazeID: nextMaze.id, x: portal.to.x, y: portal.to.y)
+            let x = portal.to.x
+            let y = portal.to.y
+            if x >= 0 && x < nextMaze.height + 2 && y >= 0 && y < nextMaze.width + 2 {
+                self.gameState.currentMaze = nextMaze
+                self.player.position = Position(mazeID: nextMaze.id, x: x, y: y)
+            } else {
+                self.gameState.currentMaze = nextMaze
+                self.player.position = Position(mazeID: nextMaze.id, x: 1, y: 1)
+            }
         }
         portalToEnter = nil
+        activeAlert = nil
     }
 
     func declinePortal() {
         portalToEnter = nil
+        activeAlert = nil
+    }
+
+    func returnToStartPage() {
+        self.isMoving = false
+        self.autoPathfindingEnabled = false
+        self.activeAlert = nil
+        self.gameFinished = true
+    }
+
+    func finishGame() {
+        // 当用户关闭终点提示时，根据设置决定是否自动返回
+        if autoReturnToMain {
+            returnToStartPage()
+        } else {
+            // 不自动返回时用户可在GameView中手动返回
+        }
+    }
+}
+
+enum ActiveAlert: Identifiable, Equatable {
+    case portal
+    case insufficientScore
+    case saveConfirmation(success: Bool)
+    case endReached
+    case pathNotFound
+
+    var id: String {
+        switch self {
+        case .portal:
+            return "portal"
+        case .insufficientScore:
+            return "insufficientScore"
+        case .saveConfirmation(let success):
+            return "saveConfirmation-\(success)"
+        case .endReached:
+            return "endReached"
+        case .pathNotFound:
+            return "pathNotFound"
+        }
     }
 }

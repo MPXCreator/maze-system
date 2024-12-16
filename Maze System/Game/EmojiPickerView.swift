@@ -14,11 +14,13 @@ struct EmojiPickerView: View {
     let emojis = ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
                   "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
                   "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜",
-                  "🤪", "🤨", "🧐", "🤓", "😎", "🥸", "🤩", "🥳"]
+                  "🤪", "🤨", "🧐", "🤓", "😎", "🥸", "🤩", "🥳",
+                  "🧑‍💻", "👾", "🚀", "🦄", "🐶", "🐱", "🐭", "🐹",
+                  "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮"]
 
     var body: some View {
         #if os(iOS) || os(tvOS)
-        NavigationStack {
+        NavigationView {
             ScrollView {
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 5), spacing: 20) {
                     ForEach(emojis, id: \.self) { emoji in
@@ -32,10 +34,10 @@ struct EmojiPickerView: View {
                 }
                 .padding()
             }
-            .navigationTitle(NSLocalizedString("Select an Emoji", comment: ""))
+            .navigationTitle("Select an Emoji")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(NSLocalizedString("Done", comment: "")) {
+                    Button("Done") {
                         onEmojiSelected(selectedEmoji)
                     }
                 }
@@ -43,7 +45,7 @@ struct EmojiPickerView: View {
         }
         #elseif os(macOS)
         VStack {
-            Text(NSLocalizedString("Select an Emoji", comment: ""))
+            Text("Select an Emoji")
                 .font(.headline)
                 .padding()
             ScrollView {
@@ -60,10 +62,10 @@ struct EmojiPickerView: View {
                 .padding()
             }
             HStack {
-                Button(NSLocalizedString("Cancel", comment: "")) {
+                Button("Cancel") {
                     onEmojiSelected(selectedEmoji)
                 }
-                Button(NSLocalizedString("Done", comment: "")) {
+                Button("Done") {
                     onEmojiSelected(selectedEmoji)
                 }
             }

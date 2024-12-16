@@ -377,7 +377,7 @@ struct TaskEditView: View {
                         }
                         VStack(alignment: .leading) {
                             Text("Task @(\(task.position.x), \(task.position.y))")
-                            Text("\(LocalizedStringKey("Score")): \(task.score)")
+                            Text("Score: \(task.score)")
                         }
                         Spacer()
                         #if os(macOS)

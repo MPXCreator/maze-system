@@ -7,7 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		D2C174402CDA841100562C89 /* CodeEditor in Frameworks */ = {isa = PBXBuildFile; productRef = D2C1743F2CDA841100562C89 /* CodeEditor */; };
+		D29889EA2CE383B100045181 /* CodeEditorView in Frameworks */ = {isa = PBXBuildFile; productRef = D29889E92CE383B100045181 /* CodeEditorView */; };
+		D29889EC2CE383B100045181 /* LanguageSupport in Frameworks */ = {isa = PBXBuildFile; productRef = D29889EB2CE383B100045181 /* LanguageSupport */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,7 +28,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D2C174402CDA841100562C89 /* CodeEditor in Frameworks */,
+				D29889EC2CE383B100045181 /* LanguageSupport in Frameworks */,
+				D29889EA2CE383B100045181 /* CodeEditorView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -70,7 +72,8 @@
 			);
 			name = "Maze System";
 			packageProductDependencies = (
-				D2C1743F2CDA841100562C89 /* CodeEditor */,
+				D29889E92CE383B100045181 /* CodeEditorView */,
+				D29889EB2CE383B100045181 /* LanguageSupport */,
 			);
 			productName = "Maze System";
 			productReference = D2818BD62CCD339F001B0207 /* Maze System.app */;
@@ -84,7 +87,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1600;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 1610;
 				TargetAttributes = {
 					D2818BD52CCD339F001B0207 = {
 						CreatedOnToolsVersion = 16.0;
@@ -96,13 +99,13 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
-				Base,
 				"zh-Hans",
+				Base,
 			);
 			mainGroup = D2818BCD2CCD339F001B0207;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				D2C1743E2CDA841100562C89 /* XCRemoteSwiftPackageReference "CodeEditor" */,
+				D29889E82CE383B100045181 /* XCRemoteSwiftPackageReference "CodeEditorView" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D2818BD72CCD339F001B0207 /* Products */;
@@ -140,6 +143,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -169,6 +173,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
@@ -201,6 +206,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -230,6 +236,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -257,6 +264,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Maze System/Maze_System.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Maze System/Preview Content\"";
 				DEVELOPMENT_TEAM = HNGW4AMD7Z;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -283,7 +291,7 @@
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
@@ -297,6 +305,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Maze System/Maze_System.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Maze System/Preview Content\"";
 				DEVELOPMENT_TEAM = HNGW4AMD7Z;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -323,7 +332,7 @@
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
 				SWIFT_EMIT_LOC_STRINGS = YES;
-				SWIFT_VERSION = 6.0;
+				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				XROS_DEPLOYMENT_TARGET = 2.0;
 			};
@@ -353,21 +362,26 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		D2C1743E2CDA841100562C89 /* XCRemoteSwiftPackageReference "CodeEditor" */ = {
+		D29889E82CE383B100045181 /* XCRemoteSwiftPackageReference "CodeEditorView" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/ZeeZide/CodeEditor.git";
+			repositoryURL = "https://github.com/mchakravarty/CodeEditorView.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 1.2.6;
+				minimumVersion = 0.14.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		D2C1743F2CDA841100562C89 /* CodeEditor */ = {
+		D29889E92CE383B100045181 /* CodeEditorView */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = D2C1743E2CDA841100562C89 /* XCRemoteSwiftPackageReference "CodeEditor" */;
-			productName = CodeEditor;
+			package = D29889E82CE383B100045181 /* XCRemoteSwiftPackageReference "CodeEditorView" */;
+			productName = CodeEditorView;
+		};
+		D29889EB2CE383B100045181 /* LanguageSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D29889E82CE383B100045181 /* XCRemoteSwiftPackageReference "CodeEditorView" */;
+			productName = LanguageSupport;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

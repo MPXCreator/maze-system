@@ -12,8 +12,11 @@ struct DesignerStartView: View {
     @Environment(\.modelContext) var modelContext
     @Query var drafts: [Draft]
     
-    @State var ndraft: Draft = Draft()
+    @AppStorage("defualtAuthor") private var defualtAuthor: String = "Somebody"
+    
+    @State var ndraft: Draft?
     @State var isEditorActive = false
+    @State var showSavedDrafts = false
     
     var body: some View {
         VStack {
@@ -30,28 +33,27 @@ struct DesignerStartView: View {
                 Spacer()
                 
                 Button {
-                    ndraft = Draft()
+                    ndraft = Draft(metadata: Metadata(name: "Mazes", author: defualtAuthor, version: "0.0.1"))
                     isEditorActive = true
                 } label: {
                     HStack {
                         Image(systemName: "play.fill")
-                        Text(LocalizedStringKey("Create New Config"))
+                        Text(LocalizedStringKey("New Config"))
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.green)
+                    .foregroundColor(.white)
+                    .cornerRadius(10)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.green)
-                .foregroundColor(.white)
-                .cornerRadius(10)
                 .buttonStyle(PlainButtonStyle())
                 
-                NavigationLink(destination: {
-                    DraftListView()
-                        .environment(\.modelContext, modelContext)
-                }) {
+                Button {
+                    showSavedDrafts = true
+                } label: {
                     HStack {
                         Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
-                        Text(LocalizedStringKey("Saved Drafts"))
+                        Text(NSLocalizedString("Saved Draft", comment: ""))
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
@@ -60,6 +62,18 @@ struct DesignerStartView: View {
                     .cornerRadius(10)
                 }
                 .buttonStyle(PlainButtonStyle())
+                .sheet(isPresented: $showSavedDrafts) {
+                    DraftListView(onSelect: { draft in
+                        ndraft = Draft(
+                            metadata: draft.metadata,
+                            start: draft.start,
+                            end: draft.end,
+                            mazes: draft.mazes
+                        )
+                        isEditorActive = true
+                    })
+                    .frame(minHeight: 300)
+                }
                 
                 Spacer()
             }
@@ -73,7 +87,11 @@ struct DesignerStartView: View {
         .navigationBarHidden(true)
 #endif
         .navigationDestination(isPresented: $isEditorActive) {
-            DesignerEditView(draft: ndraft)
+            if let draft = ndraft {
+                DraftEditView(draft: draft)
+            } else {
+                Text("Wrong data.")
+            }
         }
     }
 }

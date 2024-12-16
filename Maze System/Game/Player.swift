@@ -17,4 +17,10 @@ class Player: ObservableObject {
     init(position: Position) {
         self.position = position
     }
+    
+    init(position: Position, score: Int, emoji: String) {
+        self.position = position
+        self.score = score
+        self.emoji = emoji
+    }
 }

@@ -13,6 +13,7 @@ struct GameStartView: View {
     @State private var showConfigurationView: Bool = false
     @State private var showSavedGames: Bool = false
     @State private var selectedGameState: GameState?
+    @State private var loadSavedGame: Bool = false
 
     var body: some View {
         NavigationStack {
@@ -29,12 +30,6 @@ struct GameStartView: View {
                 
                 HStack {
                     Spacer()
-                    
-                    /*
-                    NavigationLink(destination: ConfigurationView(), isActive: $showConfigurationView) {
-                        EmptyView()
-                    }.hidden()
-                     */
                     
                     Button {
                         // 显示配置界面
@@ -74,7 +69,9 @@ struct GameStartView: View {
                         GameStateListView(onSelect: { state in
                             selectedGameState = state
                             showSavedGames = false
+                            loadSavedGame = true
                         })
+                        .frame(minHeight: 300)
                     }
                     
                     Spacer()
@@ -86,6 +83,13 @@ struct GameStartView: View {
             .padding(.horizontal, 20)
             .navigationDestination(for: GameState.self) { gameState in
                 GameView(gameController: GameController(gameState: gameState))
+            }
+            .navigationDestination(isPresented: $loadSavedGame) {
+                if let gameState = selectedGameState {
+                    GameView(gameController: GameController(gameState: gameState))
+                } else {
+                    Text("Error content.")
+                }
             }
         }
     }

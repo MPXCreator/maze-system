@@ -9,41 +9,71 @@ import SwiftUI
 import SwiftData
 
 struct DraftListView: View {
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) var modelContext
     @Query var drafts: [Draft]
     
+    var onSelect: (Draft) -> Void
+    
     var body: some View {
-        List {
-            ForEach(drafts) { draft in
-                NavigationLink(destination: {
-                    DesignerEditView(draft: draft)
-                }) {
-                    VStack(alignment: .leading) {
+        NavigationStack {
+            List {
+                ForEach(drafts) { draft in
+                    HStack {
                         Text(draft.metadata.name)
-                        Text("\(LocalizedStringKey("Author")): \(draft.metadata.author)")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
+                        Text("By \(draft.metadata.author)")
+                        Text("Version \(draft.metadata.version)")
+                        Spacer()
+                        #if os(macOS)
+                        Button(action: {
+                            modelContext.delete(draft)
+                        }) {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
+                        #endif
+                    }
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            deleteDraft(draft)
+                        } label: {
+                            Text(LocalizedStringKey("Delete"))
+                            Image(systemName: "trash")
+                        }
+                    }
+                    .onTapGesture {
+                        let nD = Draft(
+                            metadata: draft.metadata,
+                            start: draft.start,
+                            end: draft.end,
+                            mazes: draft.mazes
+                        )
+                        
+                        onSelect(nD)
+                        dismiss()
                     }
                 }
-                .contextMenu {
-                    Button(role: .destructive) {
-                        deleteDraft(draft)
-                    } label: {
-                        Text(LocalizedStringKey("Delete"))
-                        Image(systemName: "trash")
-                    }
+                .onDelete(perform: deleteDrafts)
+                
+                if drafts.isEmpty {
+                    Text(LocalizedStringKey("No content."))
                 }
             }
-            .onDelete(perform: deleteDrafts)
-            
-            if drafts.isEmpty {
-                Text(LocalizedStringKey("No content."))
-            }
-        }
-        .navigationTitle(LocalizedStringKey("Saved Drafts"))
-        .toolbar {
+            .navigationTitle(LocalizedStringKey("Saved Drafts"))
             #if os(iOS)
-            EditButton()
+            .toolbar {
+                EditButton()
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text(NSLocalizedString("Cancel", comment: ""))
+                    }
+                }
+            }
             #endif
         }
     }

@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-struct DesignerEditView: View {
+struct DraftEditView: View {
     @ObservedObject var draft: Draft
     @Environment(\.modelContext) private var modelContext
 
@@ -39,13 +39,13 @@ struct DesignerEditView: View {
         ZStack {
             #if os(iOS)
             if UIDevice.current.userInterfaceIdiom == .phone {
-                navigationStack
+                SingleView
             } else {
-                //navigationSplitView
-                navigationStack
+                SplitView
+                //SingleView
             }
             #else
-            navigationSplitView
+            SplitView
             #endif
 
             // Prompt Views
@@ -82,19 +82,16 @@ struct DesignerEditView: View {
     }
     
     // for iOS
-    private var navigationStack: some View {
+    private var SingleView: some View {
         content
             .navigationTitle(draft.metadata.name)
-            .navigationDestination(for: DesignerSelection.self) { selection in
-                detailView(for: selection)
-            }
             .toolbar {
                 toolbarContent
             }
     }
     
-    // for macOS
-    private var navigationSplitView: some View {
+    // for macOS/iPadOS
+    private var SplitView: some View {
         NavigationSplitView {
             List(selection: $selection) {
                 metadataSection
@@ -106,14 +103,21 @@ struct DesignerEditView: View {
                 mazesSection
             }
             .navigationTitle(draft.metadata.name)
+            #if os(iOS)
+            .toolbar {
+                toolbarContent
+            }
+            #endif
         } detail: {
             if let selection = selection {
                 detailView(for: selection)
+                    .id(selection.hashValue)
             } else {
                 VStack {
                     Spacer()
                     Image(systemName: "square.and.pencil")
                         .resizable()
+                        .frame(width: 300, height: 300)
                         .scaledToFit()
                         .padding()
                     Text("Select an item or add a maze.")
@@ -123,9 +127,11 @@ struct DesignerEditView: View {
                 .padding()
             }
         }
+        #if os(macOS)
         .toolbar {
             toolbarContent
         }
+        #endif
     }
 
     @ViewBuilder
@@ -198,8 +204,14 @@ struct DesignerEditView: View {
     private var entryExitButtons: some View {
         Group {
             #if os(iOS)
-            NavigationLink(destination: detailView(for: .entry)) {
-                entryContent
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                NavigationLink(destination: detailView(for: .entry)) {
+                    entryContent
+                }
+            } else {
+                NavigationLink(value: DesignerSelection.entry) {
+                    entryContent
+                }
             }
             #else
             NavigationLink(value: DesignerSelection.entry) {
@@ -208,8 +220,14 @@ struct DesignerEditView: View {
             #endif
             
             #if os(iOS)
-            NavigationLink(destination: detailView(for: .exit)) {
-                exitContent
+            if UIDevice.current.userInterfaceIdiom == .phone {
+                NavigationLink(destination: detailView(for: .exit)) {
+                    exitContent
+                }
+            } else {
+                NavigationLink(value: DesignerSelection.exit) {
+                    exitContent
+                }
             }
             #else
             NavigationLink(value: DesignerSelection.exit) {
@@ -229,8 +247,14 @@ struct DesignerEditView: View {
         Section(LocalizedStringKey("Mazes")) {
             ForEach(draft.mazes) { maze in
                 #if os(iOS)
-                NavigationLink(destination: detailView(for: .maze(id: maze.id))) {
-                    Text(maze.id)
+                if UIDevice.current.userInterfaceIdiom == .phone {
+                    NavigationLink(destination: detailView(for: .maze(id: maze.id))) {
+                        Text(maze.id)
+                    }
+                } else {
+                    NavigationLink(value: DesignerSelection.maze(id: maze.id)) {
+                        Text(maze.id)
+                    }
                 }
                 #else
                 NavigationLink(value: DesignerSelection.maze(id: maze.id)) {
@@ -255,36 +279,49 @@ struct DesignerEditView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         #if os(iOS)
-        if UIDevice.current.userInterfaceIdiom == .phone {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                EditButton()
-            }
+        ToolbarItem(placement: .navigationBarTrailing) {
+            EditButton()
+        }
+        
+        ToolbarItemGroup(placement: UIDevice.current.userInterfaceIdiom == .pad ? .bottomBar : .navigationBarTrailing) {
+            addMazeButton
+            saveDraftButton
+            exportConfigButton
+        }
+        #else
+        ToolbarItemGroup {
+            addMazeButton
+            saveDraftButton
+            exportConfigButton
         }
         #endif
-        ToolbarItem {
-            Button(action: { showInputForm = true }) {
-                Label(LocalizedStringKey("Add Maze"), systemImage: "plus")
-            }
-            #if os(macOS)
-            .buttonStyle(.borderedProminent)
-            #endif
+    }
+    
+    private var addMazeButton: some View {
+        Button(action: { showInputForm = true }) {
+            Label(LocalizedStringKey("Add Maze"), systemImage: "plus")
         }
-        ToolbarItem {
-            Button(action: { saveDraft() }) {
-                Label(LocalizedStringKey("Save Draft"), systemImage: "square.and.arrow.down.badge.clock")
-            }
-            #if os(macOS)
-            .buttonStyle(.borderedProminent)
-            #endif
+        #if os(macOS)
+        .buttonStyle(.borderedProminent)
+        #endif
+    }
+    
+    private var saveDraftButton: some View {
+        Button(action: { saveDraft() }) {
+            Label(LocalizedStringKey("Save Draft"), systemImage: "square.and.arrow.down.badge.clock")
         }
-        ToolbarItem {
-            Button(action: { exportConfig() }) {
-                Label(LocalizedStringKey("Export Config"), systemImage: "square.and.arrow.up")
-            }
-            #if os(macOS)
-            .buttonStyle(.borderedProminent)
-            #endif
+        #if os(macOS)
+        .buttonStyle(.borderedProminent)
+        #endif
+    }
+    
+    private var exportConfigButton: some View {
+        Button(action: { exportConfig() }) {
+            Label(LocalizedStringKey("Export Config"), systemImage: "square.and.arrow.up")
         }
+        #if os(macOS)
+        .buttonStyle(.borderedProminent)
+        #endif
     }
 
     private var addMazeForm: some View {
@@ -832,10 +869,10 @@ struct JSONDataDocument: FileDocument {
     }
 }
 
-struct DesignerEditView_Previews: PreviewProvider {
+struct DraftEditView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            DesignerEditView(draft: Draft())
+            DraftEditView(draft: Draft(metadata: Metadata(name: "Mazes", author: "Reyes", version: "0.0.1")))
                 .modelContainer(for: Draft.self)
         }
     }

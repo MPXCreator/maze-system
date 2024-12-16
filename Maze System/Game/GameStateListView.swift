@@ -16,29 +16,40 @@ struct GameStateListView: View {
     var onSelect: (GameState) -> Void
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List {
                 ForEach(gameStates) { gameState in
                     HStack {
                         Text(gameState.displayName)
                         Spacer()
+                        #if os(macOS)
                         Button(action: {
-                            // 删除保存的游戏状态
-                            modelContext.delete(gameState)
+                            deleteState(gameState)
                         }) {
                             Image(systemName: "trash")
                                 .foregroundColor(.red)
                         }
                         .buttonStyle(BorderlessButtonStyle())
+                        #endif
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        onSelect(gameState)
                         dismiss()
+                        onSelect(gameState)
                     }
+                }
+                .onDelete(perform: deleteStates)
+                
+                if gameStates.isEmpty {
+                    Text("No content.")
                 }
             }
             .navigationTitle(NSLocalizedString("Saved Games", comment: ""))
+            .toolbar {
+                #if os(iOS)
+                EditButton()
+                #endif
+            }
 #if os(iOS)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -51,5 +62,16 @@ struct GameStateListView: View {
             }
 #endif
         }
+    }
+    
+    func deleteStates(at offsets: IndexSet) {
+        for index in offsets {
+            let state = gameStates[index]
+            modelContext.delete(state)
+        }
+    }
+    
+    private func deleteState(_ state: GameState) {
+        modelContext.delete(state)
     }
 }
